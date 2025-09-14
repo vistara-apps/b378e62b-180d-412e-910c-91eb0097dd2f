@@ -1,0 +1,30 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "frame": {
+    "version": "1",
+    "name": "PantryPal AI",
+    "subtitle": "Built with Zara",
+    "description": "PantryPal AI is a Base Mini App built with Zara.",
+    "iconUrl": "https://0co.to/images/zara-2.png",
+    "homeUrl": "https://b378e62b180d412e910c91eb0097dd2f-4owr.vercel.app",
+    "splashImageUrl": "https://b378e62b180d412e910c91eb0097dd2f-4owr.vercel.app/splash.png",
+    "splashBackgroundColor": "#000000",
+    "heroImageUrl": "https://b378e62b180d412e910c91eb0097dd2f-4owr.vercel.app/image.png",
+    "tagline": "PantryPal AI",
+    "screenshotUrls": [
+      "https://b378e62b180d412e910c91eb0097dd2f-4owr.vercel.app/screenshot.png",
+      "https://b378e62b180d412e910c91eb0097dd2f-4owr.vercel.app/screenshot.png"
+    ],
+    "primaryCategory": "social",
+    "tags": [
+      "base",
+      "miniapp",
+      "onchainkit"
+    ],
+    "webhookUrl": "https://b378e62b180d412e910c91eb0097dd2f-4owr.vercel.app/api/webhook"
+  }
+}
