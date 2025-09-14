@@ -1,15 +1,13 @@
 'use client';
 
-import { MiniKitProvider } from '@coinbase/minikit';
-import { base } from 'viem/chains';
+import { OnchainKitProvider } from '@coinbase/onchainkit';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <MiniKitProvider
-      chain={base}
-      apiKey={process.env.NEXT_PUBLIC_MINIKIT_API_KEY || 'demo-key'}
+    <OnchainKitProvider
+      apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY || 'demo-key'}
     >
       {children}
-    </MiniKitProvider>
+    </OnchainKitProvider>
   );
 }
