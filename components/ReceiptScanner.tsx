@@ -2,6 +2,9 @@
 
 import { useState, useRef } from 'react';
 import { Camera, Upload, X, Check } from 'lucide-react';
+import { googleVisionService } from '../lib/google-vision';
+import { aiService } from '../lib/ai-service';
+import { useAuth } from '../lib/auth';
 
 interface ReceiptScannerProps {
   variant?: 'camera' | 'upload';
@@ -13,26 +16,33 @@ export function ReceiptScanner({ variant = 'camera', onScanComplete }: ReceiptSc
   const [scanResult, setScanResult] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+
+  const processReceiptImage = async (imageData: string) => {
+    try {
+      // Extract text using Google Vision API
+      const ocrText = await googleVisionService.extractTextFromImage(imageData);
+
+      // Parse receipt items using AI
+      const parsedItems = await aiService.parseReceiptText(ocrText);
+
+      return parsedItems;
+    } catch (err) {
+      console.error('Error processing receipt:', err);
+      throw new Error('Failed to process receipt image');
+    }
+  };
 
   const handleCameraCapture = async () => {
     setIsScanning(true);
     setError(null);
-    
+
     try {
-      // Simulate camera capture and OCR processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock scan result
-      const mockItems = [
-        { name: 'Organic Milk', quantity: 1, unit: 'gallon', price: 4.99 },
-        { name: 'Bananas', quantity: 2, unit: 'lbs', price: 2.48 },
-        { name: 'Chicken Breast', quantity: 1.5, unit: 'lbs', price: 8.97 },
-      ];
-      
-      setScanResult(mockItems);
-      onScanComplete?.(mockItems);
+      // In a real implementation, this would open the camera
+      // For now, we'll show an error asking user to use file upload
+      throw new Error('Camera functionality requires additional setup. Please use file upload instead.');
     } catch (err) {
-      setError('Failed to scan receipt. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to scan receipt. Please try again.');
     } finally {
       setIsScanning(false);
     }
@@ -46,20 +56,16 @@ export function ReceiptScanner({ variant = 'camera', onScanComplete }: ReceiptSc
     setError(null);
 
     try {
-      // Simulate file processing
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Mock scan result
-      const mockItems = [
-        { name: 'Bread', quantity: 1, unit: 'loaf', price: 3.49 },
-        { name: 'Eggs', quantity: 1, unit: 'dozen', price: 2.99 },
-        { name: 'Yogurt', quantity: 4, unit: 'cups', price: 5.96 },
-      ];
-      
-      setScanResult(mockItems);
-      onScanComplete?.(mockItems);
+      // Convert file to base64
+      const base64Data = await googleVisionService.fileToBase64(file);
+
+      // Process the receipt
+      const parsedItems = await processReceiptImage(base64Data);
+
+      setScanResult(parsedItems);
+      onScanComplete?.(parsedItems);
     } catch (err) {
-      setError('Failed to process receipt. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to process receipt. Please try again.');
     } finally {
       setIsScanning(false);
     }
@@ -70,6 +76,41 @@ export function ReceiptScanner({ variant = 'camera', onScanComplete }: ReceiptSc
     setError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleAddToPantry = async () => {
+    if (!scanResult || !user) return;
+
+    try {
+      setIsScanning(true);
+
+      // Send receipt data to API
+      const response = await fetch('/api/receipts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.userId,
+          ocrText: 'Processed via Google Vision API', // We already processed it
+          parsedItems: scanResult,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save receipt');
+      }
+
+      // Reset scanner
+      resetScanner();
+
+      // Show success message (you could add a toast notification here)
+      alert('Items added to pantry successfully!');
+    } catch (err) {
+      setError('Failed to add items to pantry. Please try again.');
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -85,23 +126,32 @@ export function ReceiptScanner({ variant = 'camera', onScanComplete }: ReceiptSc
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="space-y-3 mb-6">
           {scanResult.map((item, index) => (
             <div key={index} className="flex justify-between items-center py-2 border-b border-border last:border-b-0">
               <div>
                 <div className="font-medium text-gray-900">{item.name}</div>
-                <div className="caption">{item.quantity} {item.unit}</div>
+                <div className="caption text-textSecondary">
+                  {item.quantity} {item.unit} • {item.category}
+                </div>
               </div>
               <div className="text-right">
-                <div className="font-medium text-gray-900">${item.price}</div>
+                <div className="font-medium text-gray-900">${item.price.toFixed(2)}</div>
+                <div className="caption text-textSecondary">
+                  {item.confidence ? `${(item.confidence * 100).toFixed(0)}%` : ''}
+                </div>
               </div>
             </div>
           ))}
         </div>
-        
-        <button className="btn-primary w-full">
-          Add to Pantry
+
+        <button
+          onClick={handleAddToPantry}
+          disabled={isScanning}
+          className="btn-primary w-full disabled:opacity-50"
+        >
+          {isScanning ? 'Adding to Pantry...' : 'Add to Pantry'}
         </button>
       </div>
     );
